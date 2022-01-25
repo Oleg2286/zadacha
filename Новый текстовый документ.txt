@@ -1,0 +1,98 @@
+Детали реализации для граничных случаев можно найти в классе с тестами Dungeon_Should. Сделайте так, чтобы все тесты проходили.
+
+После выполнения этого задания, при запуске проекта можно увидеть визуализацию пути. Наслаждайтесь найденными сокровищами!
+
+Эту задачу можно элегантно решить без циклов, используя LINQ.
+                                                Замечание:
+1. Разбить этот блок на вспомогательные методы:
+   public static MoveDirection[] FindShortestPath(Map map)
+        {
+            List<SinglyLinkedList<Point>> playerToChests
+            = BfsTask.FindPaths(map, map.InitialPosition, map.Chests).ToList();
+            List<SinglyLinkedList<Point>> exitToChests
+            = BfsTask.FindPaths(map, map.Exit, map.Chests).ToList();
+            if (exitToChests.Count == 0 || playerToChests.Count == 0)
+            {
+                List<SinglyLinkedList<Point>> fromExitToPlayer =
+                BfsTask.FindPaths(map, map.Exit, new Point[] { map.InitialPosition }).ToList();
+                if (fromExitToPlayer.Count != 0)
+                {
+                    var player = fromExitToPlayer.OrderBy(path => path.Length).FirstOrDefault().ToList();
+                    return CreateMoveDirectionArray(player);
+                }
+                else
+                    return new MoveDirection[0];
+            }
+            var chests = playerToChests
+            .Join(exitToChests, pl => pl.Value, ex => ex.Value, (p, e) => Tuple.Create(p, e))
+            .OrderBy(p => p.Item1.Length + p.Item2.Length).FirstOrDefault();
+            if (chests == null)
+                return new MoveDirection[0];
+            var previous = chests.Item1.Reverse().ToList();
+            var pathItem = chests.Item2.ToList().Skip(1);
+            previous.AddRange(pathItem);
+            return CreateMoveDirectionArray(previous);
+        }
+2. Walker.ConvertOffsetToDirection. Проверить и исправить, что бы walker не равнялся 0 в первой итерации цикла.
+
+
+            САМ КОД.
+
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
+namespace Dungeon
+{
+    public class DungeonTask
+    {
+        public static MoveDirection[] FindShortestPath(Map map)
+        {
+            List<SinglyLinkedList<Point>> playerToChests
+            = BfsTask.FindPaths(map, map.InitialPosition, map.Chests).ToList();
+            List<SinglyLinkedList<Point>> exitToChests
+            = BfsTask.FindPaths(map, map.Exit, map.Chests).ToList();
+            if (exitToChests.Count == 0 || playerToChests.Count == 0)
+            {
+                List<SinglyLinkedList<Point>> fromExitToPlayer =
+                BfsTask.FindPaths(map, map.Exit, new Point[] { map.InitialPosition }).ToList();
+                if (fromExitToPlayer.Count != 0)
+                {
+                    var player = fromExitToPlayer.OrderBy(path => path.Length).FirstOrDefault().ToList();
+                    return CreateMoveDirectionArray(player);
+                }
+                else
+                    return new MoveDirection[0];
+            }
+            var chests = playerToChests
+            .Join(exitToChests, pl => pl.Value, ex => ex.Value, (p, e) => Tuple.Create(p, e))
+            .OrderBy(p => p.Item1.Length + p.Item2.Length).FirstOrDefault();
+            if (chests == null)
+                return new MoveDirection[0];
+            var previous = chests.Item1.Reverse().ToList();
+            var pathItem = chests.Item2.ToList().Skip(1);
+            previous.AddRange(pathItem);
+            return CreateMoveDirectionArray(previous);
+        }
+
+        public static MoveDirection[] CreateMoveDirectionArray(List<Point> path)
+        {
+            MoveDirection[] moveDirection = new MoveDirection[path.Count - 1];
+            for (int walker = 1; walker < path.Count; walker++)
+            {
+                if (path[walker].X < path[walker - 1].X)
+                    moveDirection[walker - 1] = MoveDirection.Left;
+                else if (path[walker].X > path[walker - 1].X)
+                    moveDirection[walker - 1] = MoveDirection.Right;
+                else if (path[walker].Y < path[walker - 1].Y)
+                    moveDirection[walker - 1] = MoveDirection.Up;
+                else if (path[walker].Y > path[walker - 1].Y)
+                    moveDirection[walker - 1] = MoveDirection.Down;
+            }
+            return moveDirection;
+        }
+    }
+}
